@@ -8,9 +8,9 @@ WebGL Forward+ and Clustered Deferred Shading
     https://www.biociphers.org/paul-jewell-lab-member), [personal website](https://gitlab.com/inklabapp), [twitter](https://twitter.com/inklabapp), etc.
 * Tested on: (TODO) Linux pop-os 5.11.0-7614-generic, i7-9750H CPU @ 2.60GHz 32GB, GeForce GTX 1650 Mobile / Max-Q 4GB
 
-[comment]: <> (### Live Online)
+### Live Online
 
-[comment]: <> ([![]&#40;img/thumb.png&#41;]&#40;http://TODO.github.io/Project5-WebGL-Forward-Plus-and-Clustered-Deferred&#41;)
+[Link](https://sona1111.github.io/Project5-WebGL-Forward-Plus-and-Clustered-Deferred/)
 
 ### Demo Video/GIF
 
