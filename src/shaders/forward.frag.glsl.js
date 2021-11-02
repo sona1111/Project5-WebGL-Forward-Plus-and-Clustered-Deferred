@@ -10,6 +10,9 @@ export default function(params) {
   varying vec3 v_position;
   varying vec3 v_normal;
   varying vec2 v_uv;
+  
+  uniform mat4 u_view;
+  uniform vec3 u_camPos;
 
   vec3 applyNormalMap(vec3 geomnor, vec3 normap) {
     normap = normap * 2.0 - 1.0;
@@ -79,12 +82,47 @@ export default function(params) {
     for (int i = 0; i < ${params.numLights}; ++i) {
       Light light = UnpackLight(i);
       float lightDistance = distance(light.position, v_position);
-      vec3 L = (light.position - v_position) / lightDistance;
+      
+      vec3 viewDirection = 
+               normalize(u_camPos - vec3(v_position));
+      vec3 lightDirection = (light.position - v_position);
+      vec3 L = lightDirection / lightDistance;
 
       float lightIntensity = cubicGaussian(2.0 * lightDistance / light.radius);
       float lambertTerm = max(dot(L, normal), 0.0);
+      
+      float _DiffuseThreshold = 0.1;
+      float _UnlitOutlineThickness = 0.4;
+      float _LitOutlineThickness = 0.1;
+      vec4 _OutlineColor = vec4(0, 0, 0, 1);
+      float _Shininess = 10.0;
 
       fragColor += albedo * lambertTerm * light.color * vec3(lightIntensity);
+      
+      // if (lightIntensity 
+      //    * max(0.0, dot(normal, lightDirection)) 
+      //    >= _DiffuseThreshold)
+      // {
+      //    fragColor += vec3(light.color) * albedo * lambertTerm; 
+      // }else
+      //
+      // if (dot(viewDirection, normal) 
+      //    < mix(_UnlitOutlineThickness, _LitOutlineThickness, 
+      //    max(0.0, dot(normal, lightDirection))))
+      // {
+      //    fragColor += 
+      //       vec3(light.color) * vec3(_OutlineColor); 
+      // }else
+      //
+      // if (dot(normal, lightDirection) > 0.0 
+      //   
+      //    && lightIntensity *  pow(max(0.0, dot(
+      //    reflect(-lightDirection, normal), 
+      //    viewDirection)), _Shininess) > 0.5) 
+      // {
+      //    fragColor += vec3(light.color) * albedo * lambertTerm;
+      //      
+      // }
     }
 
     const vec3 ambientLight = vec3(0.025);

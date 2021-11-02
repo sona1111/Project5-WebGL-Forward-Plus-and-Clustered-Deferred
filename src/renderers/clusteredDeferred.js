@@ -8,8 +8,9 @@ import QuadVertSource from '../shaders/quad.vert.glsl';
 import fsSource from '../shaders/deferred.frag.glsl.js';
 import TextureBuffer from './textureBuffer';
 import BaseRenderer from './base';
+import {MAX_LIGHTS_PER_CLUSTER} from './base';
 
-export const NUM_GBUFFERS = 4;
+export const NUM_GBUFFERS = 3;
 
 export default class ClusteredDeferredRenderer extends BaseRenderer {
   constructor(xSlices, ySlices, zSlices) {
@@ -28,8 +29,15 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     this._progShade = loadShaderProgram(QuadVertSource, fsSource({
       numLights: NUM_LIGHTS,
       numGBuffers: NUM_GBUFFERS,
+      maxLights: MAX_LIGHTS_PER_CLUSTER,
+      xSlices: xSlices,
+      ySlices: ySlices,
+      zSlices: zSlices,
+
     }), {
-      uniforms: ['u_gbuffers[0]', 'u_gbuffers[1]', 'u_gbuffers[2]', 'u_gbuffers[3]'],
+      uniforms: ['u_gbuffers[0]', 'u_gbuffers[1]', 'u_gbuffers[2]', 'u_invView',
+        'u_viewProjectionMatrix', 'u_colmap', 'u_normap', 'u_lightbuffer', 'u_clusterbuffer',
+        'u_width', 'u_height', 'u_camPos', 'u_view', 'u_near', 'u_far'],
       attribs: ['a_uv'],
     });
 
@@ -41,6 +49,7 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
   setupDrawBuffers(width, height) {
     this._width = width;
     this._height = height;
+    this.invView = mat4.create();
 
     this._fbo = gl.createFramebuffer();
     
@@ -106,6 +115,7 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     // Update the camera matrices
     camera.updateMatrixWorld();
     mat4.invert(this._viewMatrix, camera.matrixWorld.elements);
+    mat4.invert(this.invView, this._viewMatrix)
     mat4.copy(this._projectionMatrix, camera.projectionMatrix.elements);
     mat4.multiply(this._viewProjectionMatrix, this._projectionMatrix, this._viewMatrix);
 
@@ -154,6 +164,22 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     gl.useProgram(this._progShade.glShaderProgram);
 
     // TODO: Bind any other shader inputs
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, this._clusterTexture.glTexture);
+    gl.uniform1i(this._progShade.u_clusterbuffer, 3);
+
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D,this._lightTexture.glTexture);
+    gl.uniform1i(this._progShade.u_lightbuffer,4);
+
+    gl.uniformMatrix4fv(this._progShade.u_view, false, this._viewMatrix);
+    gl.uniform3f(this._progShade.u_camPos, camera.position.x, camera.position.y, camera.position.z);
+    gl.uniform1f(this._progShade.u_near, camera.near);
+    gl.uniform1f(this._progShade.u_far, camera.far);
+    gl.uniform1f(this._progShade.u_width, canvas.width);
+    gl.uniform1f(this._progShade.u_height, canvas.height);
+
+    gl.uniformMatrix4fv(this._progShade.u_invView,false,this.invView);
 
     // Bind g-buffers
     const firstGBufferBinding = 0; // You may have to change this if you use other texture slots
@@ -162,6 +188,8 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
       gl.bindTexture(gl.TEXTURE_2D, this._gbuffers[i]);
       gl.uniform1i(this._progShade[`u_gbuffers[${i}]`], i + firstGBufferBinding);
     }
+
+
 
     renderFullscreenQuad(this._progShade);
   }
